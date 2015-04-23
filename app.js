@@ -4,9 +4,22 @@ $(document).ready( function() {
 		$('.results').html('');
 		// get the value of the tags the user submitted
 		var tags = $(this).find("input[name='tags']").val();
+		console.log(tags);
 		getUnanswered(tags);
-	});
-});
+	}); //end submit
+
+	$('.inspiration-getter').submit( function (event){
+		// zero out results if previous search has run
+		$('.results').html('');
+		// get the value of the tags the user submitted
+		var answerers = $(this).find("input[name='answerers']").val();
+		console.log(answerers);
+		getAnswerers(answerers);
+	}); //end submit inspiration-getter
+
+}); //end ready
+
+
 
 // this function takes the question object returned by StackOverflow 
 // and creates new result to be appended to DOM
@@ -31,15 +44,11 @@ var showQuestion = function(question) {
 
 	// set some properties related to asker
 	var asker = result.find('.asker');
-	asker.html('<p>Name: <a target="_blank" href=http://stackoverflow.com/users/' + question.owner.user_id + ' >' +
-													question.owner.display_name +
-												'</a>' +
-							'</p>' +
- 							'<p>Reputation: ' + question.owner.reputation + '</p>'
+	asker.html('<p>Name: <a target="_blank" href=http://stackoverflow.com/users/' + question.owner.user_id + ' >' +question.owner.display_name + '</a>' + '</p>' + '<p>Reputation: ' + question.owner.reputation + '</p>'
 	);
 
 	return result;
-};
+}; //end showQuestion();
 
 
 // this function takes the results object from StackOverflow
@@ -80,13 +89,96 @@ var getUnanswered = function(tags) {
 		$.each(result.items, function(i, item) {
 			var question = showQuestion(item);
 			$('.results').append(question);
-		});
-	})
+		}); //end each
+	})//end .done
 	.fail(function(jqXHR, error, errorThrown){
 		var errorElem = showError(error);
 		$('.search-results').append(errorElem);
-	});
+	});//end .fail
+};//end getUnanswered()
+
+/********************************************
+
+ANSWERERS
+
+********************************************/
+
+var showAnswerer = function(answer) {
+	
+	// clone our result template code
+	var result = $('.templates .answer').clone();
+	
+	// Set the Display Name properties in result
+	var displayName = result.find('.display-name a');
+	displayName.attr('href', answer.user.link);
+	displayName.attr('title', 'View the profile of ' + answer.user.display_name)
+	displayName.text(answer.user.display_name);
+
+	// set the Reputation properties in result
+	var reputation = result.find('.reputation');
+	reputation.text(answer.user.reputation);
+
+	// set the Posts properties in result
+	var posts = result.find('.posts');
+	posts.text(answer.post_count);
+
+	// set the Score properties in result
+	var score = result.find('.score');
+	score.text(answer.score);
+
+	return result;
+}; //end showQuestion();
+
+
+// this function takes the results object from StackOverflow
+// and creates info about search results to be appended to DOM
+var showSearchResults = function(query, resultNum) {
+	var results = resultNum + ' results for <strong>' + query;
+	return results;
 };
 
 
+// takes error string and turns it into displayable DOM element
+var showError = function(error){
+	var errorElem = $('.templates .error').clone();
+	var errorText = '<p>' + error + '</p>';
+	errorElem.append(errorText);
+};
+
+
+var getAnswerers = function(answerers) {
+
+	// the parameters we need to pass in our request to StackOverflow's API
+
+	var request = {
+		tag: answerers,
+		site: 'stackoverflow',
+		period: 'all_time'
+	}
+
+
+	var result = $.ajax({
+		url: "http://api.stackexchange.com/2.2/tags/"+request.tag+"/top-answerers/"+request.period,
+		data: request,
+		dataType: "jsonp",
+		type: "GET"
+	})
+
+	.done(function(result){
+		var searchResults = showSearchResults(request.tag, result.items.length);
+
+		$('.search-results').html(searchResults);
+
+		$.each(result.items, function(i, item) {
+			var answer = showAnswerer(item);
+			$('.results').append(answer);
+		}); //end each
+	})//end .done
+	.fail(function(jqXHR, error, errorThrown){
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});//end .fail
+
+	//end done
+};
 
